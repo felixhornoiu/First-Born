@@ -1,0 +1,15 @@
+{
+  "width": 1024,
+  "height": 1024,
+  "zoom": 12,
+  "west": 25.400390625,
+  "east": 25.751953125,
+  "north": 45.76752296214988,
+  "south": 45.52174389699363,
+  "sizeX": 27329.487660859475,
+  "sizeY": 27329.422869772614,
+  "minHeight": 489,
+  "maxHeight": 1828,
+  "encoding": "uint16le-decimetres",
+  "source": "Mapzen/AWS Terrain Tiles (terrarium)"
+}

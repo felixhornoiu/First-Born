@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08090b" />
+  <title>Brașov Sun — where it's sunny, in 3D</title>
+  <meta name="description" content="A 3D sun and shade map of Brașov and its mountains, driven by the weather forecast. Scrub through time and find the sunny spots." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b0c0e'/%3E%3Ccircle cx='16' cy='14' r='6' fill='%23ffc857'/%3E%3Cpath d='M2 28l9-11 5 5 4-4 10 10z' fill='%233b4a3a'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <canvas id="gl"></canvas>
+  <div id="markers"></div>
+
+  <header class="brand glass">
+    <span class="mark" aria-hidden="true"></span>
+    <div>
+      <h1>Brașov Sun</h1>
+      <p id="headline">Loading terrain…</p>
+    </div>
+  </header>
+
+  <div class="tools">
+    <div class="glass readout" id="readout"></div>
+    <button class="glass btn" id="btn-clouds" aria-pressed="true" title="Show or hide the cloud layer">Clouds</button>
+    <button class="glass btn icon" id="btn-north" title="Reset view" aria-label="Reset view"><span id="compass">↑</span></button>
+    <button class="glass btn only-mobile" id="btn-places" aria-expanded="false">Places</button>
+  </div>
+
+  <aside class="panel glass" id="panel">
+    <div class="panel-head">
+      <h2>Places</h2>
+      <span class="hint" id="panel-hint">sunniest first</span>
+    </div>
+    <ul id="places"></ul>
+    <footer class="legend">
+      <span><i class="sw sun"></i>sun</span>
+      <span><i class="sw cloud"></i>cloud</span>
+      <span><i class="sw shade"></i>terrain shade</span>
+      <span><i class="sw night"></i>night</span>
+    </footer>
+  </aside>
+
+  <section class="timeline glass" id="timeline">
+    <div class="tl-top">
+      <div class="tl-now">
+        <button class="btn solid" id="btn-play" aria-label="Play">▶</button>
+        <div>
+          <div class="tl-time" id="tl-time">--:--</div>
+          <div class="tl-date" id="tl-date"></div>
+        </div>
+        <button class="btn" id="btn-now">Now</button>
+      </div>
+      <div class="days" id="days" role="tablist"></div>
+    </div>
+    <div class="track" id="track">
+      <canvas id="strip" width="288" height="1"></canvas>
+      <div class="playhead" id="playhead"></div>
+    </div>
+    <div class="ticks"><span>00</span><span>03</span><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
+    <div class="tl-foot" id="tl-foot"></div>
+  </section>
+
+  <div class="tip glass" id="tip" hidden></div>
+  <div class="toast glass" id="toast" hidden></div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
