@@ -71,7 +71,8 @@ void main(){
 
 export const TERRAIN_FRAG = /* glsl */ `
 precision highp float;
-uniform sampler2D uHeight, uShadow;
+uniform sampler2D uHeight, uShadow, uMap;
+uniform float uHasMap;
 uniform vec3 uSun;
 uniform vec2 uTexel;
 uniform float uCloudAlt, uClouds;
@@ -92,6 +93,8 @@ void main(){
   wood = max(wood, smoothstep(700.0, 900.0, h) * (1.0 - smoothstep(1500.0, 1750.0, h)) * 0.85);
   vec3 albedo = mix(valley, forest, wood);
   albedo = mix(albedo, alpine, smoothstep(1500.0, 1780.0, h));
+  // Optional OpenStreetMap ground colours (npm run bake:map)
+  if (uHasMap > 0.5) albedo = pow(texture2D(uMap, vUv).rgb, vec3(2.2));
   albedo *= 0.94 + 0.12 * vnoise(vWorld.xz / 90.0);
 
   float day = smoothstep(-0.05, 0.10, uSun.y);

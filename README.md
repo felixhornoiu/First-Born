@@ -11,6 +11,7 @@ npm install
 npm run dev          # http://localhost:5173
 npm run build        # static site in dist/
 npm run bake:terrain # re-download the elevation model (only needed to change the area)
+npm run bake:map     # optional: OpenStreetMap ground colours -> public/data/map.png
 ```
 
 No API keys and no backend: it is a static site that calls Open-Meteo from the browser.
@@ -44,8 +45,12 @@ clouds.
 1. **Foundation — done.** Real terrain, sun position, GPU terrain shadows, time scrubbing.
 2. **Weather — done.** Open-Meteo cloud layers on the map, per-place sun score and daily sun strip.
 3. **Planning basics — done.** Curated places ranked by sun, best sun window per day, 9-day picker.
-4. **A recognisable map.** OpenStreetMap overlay baked at build time: streets, built-up area, forest,
-   lakes, ski lifts and marked trails, so the city is readable without labels.
+4. **A recognisable map — in progress.** `npm run bake:map` downloads streets, built-up area,
+   forest, water, trails and ski lifts from OpenStreetMap (Overpass API) and rasterises them to
+   `public/data/map.png`; the terrain picks the file up automatically and falls back to
+   procedural colours without it. The baked file is not in the repo yet — run the command once
+   and commit the result. Map data © OpenStreetMap contributors (ODbL); add the attribution to
+   the UI when the file ships.
 5. **Inversions and fog.** Use pressure-level cloud cover to estimate cloud base, so "fog in the
    city, sun on Postăvaru" days show up correctly — the classic Brașov winter case.
 6. **Planner.** "Sunniest 2 hours this weekend for a terrace / a hike / skiing", activity filters,

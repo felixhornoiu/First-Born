@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "bake:terrain": "node scripts/bake-terrain.mjs"
+    "bake:terrain": "node scripts/bake-terrain.mjs",
+    "bake:map": "node scripts/bake-map.mjs"
   },
   "dependencies": {
     "three": "^0.187.0"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.1.1",
     "@types/three": "^0.187.0",
     "pngjs": "^7.0.0",
     "typescript": "^7.0.2",

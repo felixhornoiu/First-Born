@@ -79,9 +79,18 @@ export class SunScene {
       uniforms: {
         ...shared, uHeight: { value: height }, uShadow: { value: this.shadowRT.texture },
         uTexel: { value: new THREE.Vector2(1 / t.w, 1 / t.h) }, uExag: { value: EXAG }, uMinH: { value: t.minH },
-        uCloudAlt: { value: CLOUD_ALT }, uClouds: { value: 1 },
+        uCloudAlt: { value: CLOUD_ALT }, uClouds: { value: 1 }, uMap: { value: null }, uHasMap: { value: 0 },
       },
     });
+    // Ground colours baked from OpenStreetMap, when present.
+    new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}data/map.png`, (map) => {
+      map.flipY = false;
+      map.colorSpace = THREE.NoColorSpace;
+      map.anisotropy = r.capabilities.getMaxAnisotropy();
+      map.needsUpdate = true;
+      this.terrainMat.uniforms.uMap.value = map;
+      this.terrainMat.uniforms.uHasMap.value = 1;
+    }, undefined, () => {});
     const mesh = new THREE.Mesh(geo, this.terrainMat);
     mesh.frustumCulled = false;
     this.scene.add(mesh);
