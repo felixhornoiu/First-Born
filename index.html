@@ -23,7 +23,11 @@
   <div class="tools">
     <div class="glass readout" id="readout"></div>
     <button class="glass btn" id="btn-clouds" aria-pressed="true" title="Show or hide the cloud layer">Clouds</button>
-    <button class="glass btn icon" id="btn-north" title="Reset view" aria-label="Reset view"><span id="compass">↑</span></button>
+    <div class="glass seg" role="group" aria-label="View">
+      <button class="btn" id="btn-city" aria-pressed="true">City</button>
+      <button class="btn" id="btn-region" aria-pressed="false">Region</button>
+    </div>
+    <button class="glass btn icon" id="btn-north" title="Face north" aria-label="Face north"><span id="compass">↑</span></button>
     <button class="glass btn only-mobile" id="btn-places" aria-expanded="false">Places</button>
   </div>
 
@@ -36,7 +40,7 @@
     <footer class="legend">
       <span><i class="sw sun"></i>sun</span>
       <span><i class="sw cloud"></i>cloud</span>
-      <span><i class="sw shade"></i>terrain shade</span>
+      <span><i class="sw shade"></i>shade</span>
       <span><i class="sw night"></i>night</span>
     </footer>
   </aside>
@@ -58,7 +62,7 @@
       <div class="playhead" id="playhead"></div>
     </div>
     <div class="ticks"><span>00</span><span>03</span><span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span></div>
-    <div class="tl-foot" id="tl-foot"></div>
+    <div class="tl-foot"><span id="tl-foot"></span><span class="credit">Map © OpenStreetMap contributors, Overture Maps · Weather Open-Meteo</span></div>
   </section>
 
   <div class="tip glass" id="tip" hidden></div>

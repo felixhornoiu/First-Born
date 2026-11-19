@@ -1,0 +1,13 @@
+{
+  "count": 26652,
+  "cx": 2046.6749648242985,
+  "cz": -414.9696630893322,
+  "half": 3400,
+  "unit": 0.10625,
+  "center": {
+    "lat": 45.6485,
+    "lon": 25.6025
+  },
+  "source": "Overture Maps buildings",
+  "heightsFromData": 2108
+}

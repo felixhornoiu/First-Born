@@ -3,6 +3,7 @@ import { Terrain } from './terrain';
 import { sunPosition, type SunPos } from './sun';
 import { terrainLit } from './shadow';
 import { SunScene } from './scene';
+import { City } from './city';
 import { FORECAST_DAYS, PAST_DAYS, loadWeather, type Weather } from './weather';
 import { PLACES, type Place } from './places';
 import { DAY, HOUR, fmtDate, fmtLong, fmtTime, fmtWeekday, localMidnight } from './time';
@@ -23,6 +24,7 @@ async function main() {
   const sunAt = (ms: number) => sunPosition(ms, cLat, cLon);
 
   let weather: Weather | null = null;
+  let city: City | null = null;
   let weatherRev = 0;
   const now = Date.now();
   const today = localMidnight(now);
@@ -31,6 +33,8 @@ async function main() {
   let time = now;
   let playing = false;
   let selected = 'sfatului';
+  let mode: 'city' | 'region' = 'city';
+  const shown = (s: Spot) => mode === 'region' || !city || city.inside(s.x, s.z);
 
   // ---- places -------------------------------------------------------------
   const list = $('places'), markers = $('markers');
@@ -70,7 +74,7 @@ async function main() {
       const sun = daySun(day), up = new Uint8Array(BINS), lit = new Uint8Array(BINS);
       for (let i = 0; i < BINS; i++) {
         up[i] = sun[i].altitude > 0 ? 1 : 0;
-        lit[i] = up[i] && terrainLit(terrain, s.x, s.z, sun[i].dir) ? 1 : 0;
+        lit[i] = up[i] && terrainLit(terrain, s.x, s.z, sun[i].dir) && (!city || city.lit(s.x, s.z, sun[i].dir)) ? 1 : 0;
       }
       litCache.set(`${s.id}:${day}`, (g = { up, lit }));
     }
@@ -102,9 +106,10 @@ async function main() {
     const cover = w?.cover ?? 0, temp = w?.temp ?? null;
     if (sun.altitude <= 0) return { status: 'night', score: 0, cover, temp };
     if (!terrainLit(terrain, x, z, sun.dir)) return { status: 'shade', score: 0, cover, temp };
+    if (city && !city.lit(x, z, sun.dir)) return { status: 'shade', score: 0, cover, temp };
     return { status: cover < 0.25 ? 'sun' : cover < 0.6 ? 'part' : 'cloud', score: 1 - cover, cover, temp };
   }
-  const LABEL: Record<Status, string> = { night: 'Night', shade: 'Terrain shade', cloud: 'Cloudy', part: 'Partly sunny', sun: 'Sunny' };
+  const LABEL: Record<Status, string> = { night: 'Night', shade: 'Shade', cloud: 'Cloudy', part: 'Partly sunny', sun: 'Sunny' };
 
   // ---- rendering of UI state --------------------------------------------------
   const strip = $<HTMLCanvasElement>('strip'), playhead = $('playhead');
@@ -123,7 +128,7 @@ async function main() {
     for (const s of spots) {
       const st = statusAt(s.x, s.z, time, sun);
       scores.set(s.id, st.score);
-      if (st.score >= 0.5) sunny++;
+      if (st.score >= 0.5 && shown(s)) sunny++;
       const cls = st.status === 'night' ? '' : `s-${st.status}`;
       s.row.querySelector('.dot')!.className = `dot ${cls}`;
       s.marker.querySelector('.pin')!.className = `pin ${cls}`;
@@ -153,8 +158,9 @@ async function main() {
       `${d.sunHours.toFixed(1)} h of sun this day` + (weather ? '' : ' (clear-sky estimate)');
 
     const area = weather?.sample(0, 0, time);
+    scene.setOvercast(area ? Math.min(area.cover * 1.1, 1) : 0);
     $('headline').textContent = sun.altitude <= 0 ? 'The sun is down — scrub the timeline'
-      : `Sunny at ${sunny} of ${spots.length} places` + (area ? ` · ${Math.round(area.temp)}°C` : '');
+      : `Sunny at ${sunny} of ${spots.filter(shown).length} places` + (area ? ` · ${Math.round(area.temp)}°C` : '');
     const az = (sun.azimuth * 180) / Math.PI;
     $('readout').innerHTML = `<span>sun <b>${((sun.altitude * 180) / Math.PI).toFixed(1)}°</b></span>` +
       `<span>az <b>${az.toFixed(0)}° ${COMPASS[Math.round(az / 45) % 8]}</b></span>` +
@@ -177,7 +183,7 @@ async function main() {
   function sortPlaces() {
     const order = [...spots].sort((a, b) => (scores.get(b.id)! - scores.get(a.id)!) ||
       dayData(b, localMidnight(time)).sunHours - dayData(a, localMidnight(time)).sunHours);
-    order.forEach((s) => list.append(s.row.parentElement!));
+    order.forEach((s) => { s.row.parentElement!.hidden = !shown(s); list.append(s.row.parentElement!); });
   }
 
   function setTime(t: number) {
@@ -192,7 +198,7 @@ async function main() {
       s.marker.classList.toggle('sel', s.id === id);
     }
     const s = spots.find((p) => p.id === id)!;
-    if (fly) scene.setView(s.x, s.z, 8500, scene.bearing, 34);
+    if (fly) scene.setView(s.x, s.z, city?.inside(s.x, s.z) ? 1100 : 7000, scene.bearing, 34);
     $('panel').classList.remove('open');
     update();
   }
@@ -223,8 +229,23 @@ async function main() {
     cloudsBtn.setAttribute('aria-pressed', String(on));
     scene.setCloudsVisible(on);
   };
-  const home = (animate: boolean) => scene.setView(-1500, 1200, 25000, 205, 36, animate);
-  $('btn-north').onclick = () => home(true);
+  // Two framings: the old town seen from above Tâmpa, and the whole region.
+  const [ox, oz] = terrain.toWorld(45.6427, 25.5887);
+  const views = {
+    city: (animate: boolean) => scene.setView(ox, oz, 1700, 322, 33, animate),
+    region: (animate: boolean) => scene.setView(-1500, 1200, 25000, 205, 36, animate),
+  };
+  const setMode = (m: 'city' | 'region', animate = true) => {
+    mode = m;
+    views[m](animate);
+    $('panel-hint').textContent = m === 'city' ? 'in the city · sunniest first' : 'whole region · sunniest first';
+    if (spots.length) { update(); sortPlaces(); scene.invalidate(); }
+    $('btn-city').setAttribute('aria-pressed', String(m === 'city'));
+    $('btn-region').setAttribute('aria-pressed', String(m === 'region'));
+  };
+  $('btn-city').onclick = () => setMode('city');
+  $('btn-region').onclick = () => setMode('region');
+  $('btn-north').onclick = () => scene.setView(scene.controls.target.x, scene.controls.target.z, scene.camera.position.distanceTo(scene.controls.target), 0, 55);
   $('btn-places').onclick = () => $('panel').classList.toggle('open');
   addEventListener('keydown', (e) => {
     if (e.target instanceof HTMLButtonElement && e.key === ' ') return;
@@ -240,19 +261,33 @@ async function main() {
   canvas.addEventListener('pointerleave', () => { hover = null; tip.hidden = true; });
 
   let last = performance.now();
-  scene.onFrame = () => {
+  scene.onTick = () => {
     const t = performance.now(), dt = Math.min(t - last, 100); last = t;
     if (playing) {
       if (time >= tMax) setPlaying(false);
       else setTime(time + dt * 2400); // 40 simulated minutes per second
     }
+    if (hover) {
+      const hit = scene.pick(hover.clientX, hover.clientY);
+      tip.hidden = !hit;
+      if (hit) {
+        const st = statusAt(hit.x, hit.z, time, sunAt(time));
+        const roof = city?.buildingAt(hit.x, hit.z) ?? 0;
+        tip.innerHTML = `<b>${Math.round(terrain.heightAt(hit.x, hit.z))} m</b> · ${roof > 0 ? 'roof · ' : ''}${LABEL[st.status]}` +
+          (st.temp != null ? ` · ${Math.round(st.temp)}°` : '');
+        tip.style.left = `${hover.clientX + 14}px`; tip.style.top = `${hover.clientY + 14}px`;
+      }
+      hover = null;
+    }
+  };
+  scene.onFrame = () => {
     // Place markers; labels yield to the selected place and to earlier ones when they would collide.
     const taken: { x: number; y: number; w: number }[] = [];
     const ordered = [...spots].sort((a, b) => +(b.id === selected) - +(a.id === selected));
     for (const s of ordered) {
       const p = scene.project(scene.display(s.x, s.z, 60));
-      s.marker.style.display = p ? '' : 'none';
-      if (!p) continue;
+      s.marker.style.display = p && shown(s) ? '' : 'none';
+      if (!p || !shown(s)) continue;
       s.marker.style.transform = `translate(${p.x - 5}px, ${p.y - 8}px)`;
       const w = 22 + s.name.length * 6.6;
       const clash = taken.some((t) => Math.abs(t.y - p.y) < 17 && p.x < t.x + t.w && t.x < p.x + w);
@@ -260,23 +295,21 @@ async function main() {
       if (!clash) taken.push({ x: p.x, y: p.y, w });
     }
     $('compass').style.transform = `rotate(${-scene.bearing}deg)`;
-    if (hover) {
-      const hit = scene.pick(hover.clientX, hover.clientY);
-      tip.hidden = !hit;
-      if (hit) {
-        const st = statusAt(hit.x, hit.z, time, sunAt(time));
-        tip.innerHTML = `<b>${Math.round(terrain.heightAt(hit.x, hit.z))} m</b> · ${LABEL[st.status]}` +
-          (st.temp != null ? ` · ${Math.round(st.temp)}°` : '');
-        tip.style.left = `${hover.clientX + 14}px`; tip.style.top = `${hover.clientY + 14}px`;
-      }
-      hover = null;
-    }
   };
 
-  home(false);
+  setMode('city', false);
   select(selected, false);
   sortPlaces();
   if (import.meta.env.DEV) Object.assign(window, { __app: { setTime, scene, get time() { return time; } } });
+
+  City.load(terrain).then((c) => {
+    if (!c) return;
+    city = c;
+    scene.addCity(c);
+    litCache.clear(); dataCache.clear(); weatherRev++;
+    if (!c.inside(spots.find((s) => s.id === selected)!.x, spots.find((s) => s.id === selected)!.z)) selected = 'sfatului';
+    update(); sortPlaces();
+  });
 
   loadWeather(terrain).then((w) => {
     weather = w; weatherRev++;
